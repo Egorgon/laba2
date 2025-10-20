@@ -3,75 +3,48 @@
 import rospy
 from std_msgs.msg import Int32
 
-class EvenNumberPublisher:
+class EvenNumberTalker:
     def __init__(self):
         # Инициализация узла
-        rospy.init_node('even_number_publisher', anonymous=True)
+        rospy.init_node('even_talker', anonymous=True)
         
         # Публикаторы
-        self.even_pub = rospy.Publisher('even_numbers', Int32, queue_size=10)
-        self.overflow_pub = rospy.Publisher('number_overflow', Int32, queue_size=10)
+        self.number_pub = rospy.Publisher('my_topic', Int32, queue_size=10)
+        self.overflow_pub = rospy.Publisher('/overflow_topic', Int32, queue_size=10)
         
         # Переменные состояния
         self.counter = 0
         self.rate = rospy.Rate(10)  # 10 Гц
-        self.last_time = rospy.Time.now()
-        self.message_count = 0
         
-        rospy.loginfo("Even number publisher started")
-        rospy.loginfo("Publishing even numbers: 0, 2, 4, 6, ... with 10 Hz frequency")
+        rospy.loginfo("Even Number Talker started")
+        rospy.loginfo("Publishing to: my_topic and /overflow_topic")
 
-    def publish_even_numbers(self):
-        """Основная функция публикации четных чисел"""
+    def publish_numbers(self):
         while not rospy.is_shutdown():
-            # Создание и публикация сообщения с четным числом
-            even_msg = Int32()
-            even_msg.data = self.counter
-            self.even_pub.publish(even_msg)
+            # Публикация текущего четного числа в my_topic
+            number_msg = Int32()
+            number_msg.data = self.counter
+            self.number_pub.publish(number_msg)
             
-            # Логирование публикации
-            rospy.loginfo(f"Published even number: {self.counter}")
+            rospy.loginfo(f"Published to my_topic: {self.counter}")
             
-            # Проверка частоты публикации
-            self.message_count += 1
-            current_time = rospy.Time.now()
-            elapsed_time = (current_time - self.last_time).to_sec()
+            # Проверка переполнения
+            if self.counter >= 100:
+                # Публикация сообщения о переполнении в /overflow_topic
+                overflow_msg = Int32()
+                overflow_msg.data = self.counter
+                self.overflow_pub.publish(overflow_msg)
+                
+                rospy.logwarn(f"OVERFLOW! Published to /overflow_topic: {self.counter}")
+                self.counter = 0  # Сброс счетчика
+            else:
+                self.counter += 2  # Следующее четное число
             
-            # Проверка частоты каждые 2 секунды
-            if elapsed_time >= 2.0:
-                actual_rate = self.message_count / elapsed_time
-                self.last_time = current_time
-                self.message_count = 0
-            
-            # Проверка достижения 100 и сброс счетчика
-            self.check_overflow()
-            
-            # Увеличение счетчика для следующего четного числа
-            self.counter += 2
-            
-            # Ожидание для поддержания частоты 10 Гц
             self.rate.sleep()
 
-    def check_overflow(self):
-        """Проверка достижения числа 100 и отправка сообщения о переполнении"""
-        if self.counter >= 100:
-            # Создание сообщения о переполнении
-            overflow_msg = Int32()
-            overflow_msg.data = self.counter
-            self.overflow_pub.publish(overflow_msg)
-
-            rospy.loginfo("Reset counter to 0 and sent overflow notification")
-            
-            # Сброс счетчика
-            self.counter = 0
-
-    def run(self):
-        """Запуск публикации"""
-        try:
-            self.publish_even_numbers()
-        except rospy.ROSInterruptException:
-            rospy.loginfo("Publisher shutdown requested")
-
 if __name__ == '__main__':
-    publisher = EvenNumberPublisher()
-    publisher.run()
+    try:
+        talker = EvenNumberTalker()
+        talker.publish_numbers()
+    except rospy.ROSInterruptException:
+        rospy.loginfo("Talker shutdown")
