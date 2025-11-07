@@ -1,5 +1,6 @@
 <launch>
-    <node pkg="study_pkg" type="sender_node.py" name="sender" output="screen">
-        <remap from="chatter" to="new_topic"/>
+    <arg name="topic_name" default="my_default_topic"/>
+    <node pkg="roscpp_tutorials" type="listener" name="listener_cpp" output="screen">
+        <remap from="chatter" to="$(arg topic_name)"/>
     </node>
 </launch>

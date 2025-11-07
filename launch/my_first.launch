@@ -1,11 +1,14 @@
 <launch>
+    <arg name="topic_name" default="my_default_topic"/>
     <node pkg="study_pkg" type="sender_node.py" name="sender" output="screen">
-        <remap from="chatter" to="my_topic"/>
+    <remap from="chatter" to="$(arg topic_name)"/>
     </node>
     <node pkg="study_pkg" type="receiver_node.py" name="receiver" output="screen">
-        <remap from="chatter" to="my_topic"/>
+        <remap from="chatter" to="$(arg topic_name)"/>
     </node>
     <group ns="new_ns">
-        <include file="$(find study_pkg)/launch/another_one.launch"/>
+        <include file="$(find study_pkg)/launch/another_one.launch">
+            <arg name="topic_name" value="$(arg topic_name)"/>
+        </include>
     </group>
 </launch>
