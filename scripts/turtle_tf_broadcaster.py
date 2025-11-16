@@ -2,75 +2,48 @@
 
 import rospy
 import tf
-import math
 from turtlesim.msg import Pose
 from geometry_msgs.msg import TransformStamped
 
-class TurtleCarrotBroadcaster:
-    def __init__(self):  # Исправлено: было init, нужно __init__
-        # Инициализируем узел
-        rospy.init_node('turtle_carrot_broadcaster')
-        
-        # Получаем имя черепашки из параметра
-        self.turtlename = rospy.get_param('~turtle_tf_name', 'turtle1')
-        
-        # Параметры вращения морковки
-        self.rotation_radius = 1.0  # радиус вращения в метрах
-        self.rotation_speed = 1.0   # скорость вращения (рад/сек)
-        self.start_time = rospy.Time.now().to_sec()
-        
-        # Подписываемся на топик с позой черепашки
-        rospy.Subscriber('input_pose',
-                        Pose,
-                        self.handle_turtle_pose)  # Убрали лишний аргумент
-        
-        rospy.loginfo("Turtle and Carrot TF Broadcaster started for %s", self.turtlename)
+def handle_turtle_pose(msg, turtlename):
+    # Создаем объект для трансформации
+    br = tf.TransformBroadcaster()
+    
+    # Преобразуем Pose в TransformStamped
+    t = TransformStamped()
+    
+    # Заполняем заголовок
+    t.header.stamp = rospy.Time.now()
+    t.header.frame_id = "world"
+    t.child_frame_id = turtlename
+    
+    # Позиция (x, y, z)
+    t.transform.translation.x = msg.x
+    t.transform.translation.y = msg.y
+    t.transform.translation.z = 0.0
+    
+    # Ориентация (из theta в кватернион)
+    q = tf.transformations.quaternion_from_euler(0, 0, msg.theta)
+    t.transform.rotation.x = q[0]
+    t.transform.rotation.y = q[1]
+    t.transform.rotation.z = q[2]
+    t.transform.rotation.w = q[3]
+    
+    # Публикуем трансформацию
+    br.sendTransformMessage(t)
 
-    def handle_turtle_pose(self, msg):
-        # Создаем объекты для трансформации
-        br = tf.TransformBroadcaster()
-        
-        # Публикуем трансформацию для самой черепашки
-        translation_turtle = (msg.x, msg.y, 0.0)
-        rotation_turtle = tf.transformations.quaternion_from_euler(0, 0, msg.theta)
-        
-        br.sendTransform(translation_turtle,
-                        rotation_turtle,
-                        rospy.Time.now(),
-                        self.turtlename,  # Используем self.turtlename
-                        "world")
-        
-        # Вычисляем позицию вращающейся морковки
-        current_time = rospy.Time.now().to_sec()
-        elapsed_time = current_time - self.start_time
-        
-        # Угол вращения морковки вокруг черепашки
-        carrot_angle = self.rotation_speed * elapsed_time
-        
-        # Позиция морковки относительно черепашки (круговая орбита)
-        carrot_x = self.rotation_radius * math.cos(carrot_angle)
-        carrot_y = self.rotation_radius * math.sin(carrot_angle)
-        carrot_z = 0.0
-        
-        # Ориентация морковки (можно сделать так, чтобы она всегда смотрела наружу)
-        carrot_yaw = carrot_angle + math.pi  # смотрит наружу от черепашки
-        
-        translation_carrot = (carrot_x, carrot_y, carrot_z)
-        rotation_carrot = tf.transformations.quaternion_from_euler(0, 0, carrot_yaw)
-        
-        # Публикуем трансформацию для морковки
-        br.sendTransform(translation_carrot,
-                        rotation_carrot,
-                        rospy.Time.now(),
-                        "carrot",
-                        self.turtlename)  # Используем self.turtlename
-        
-        rospy.loginfo_throttle(2, "Carrot position: (%.2f, %.2f) around %s", 
-                              carrot_x, carrot_y, self.turtlename)
-
-if __name__ == '__main__':  # Исправлено: было if name == 'main'
-    try:
-        broadcaster = TurtleCarrotBroadcaster()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+if __name__ == 'main':
+    # Инициализируем узел
+    rospy.init_node('turtle_tf_broadcaster')
+    
+    # Получаем имя черепашки из параметра
+    turtlename = rospy.get_param('~turtle_tf_name', 'turtle1')
+    
+    # Подписываемся на топик с позой черепашки
+    rospy.Subscriber('input_pose',
+                     Pose,
+                     handle_turtle_pose,
+                     turtlename)
+    
+    rospy.loginfo("TF Broadcaster started for %s", turtlename)
+    rospy.spin()
