@@ -1,0 +1,16 @@
+<launch>
+  <!-- Аргументы для настройки TF -->
+  <arg name="x" default="0.0" doc="X offset"/>
+  <arg name="y" default="0.0" doc="Y offset"/>
+  <arg name="z" default="0.3" doc="Z offset"/>
+  <arg name="yaw" default="0.0" doc="Yaw angle in radians"/>
+  <arg name="pitch" default="0.0" doc="Pitch angle in radians"/>
+  <arg name="roll" default="0.0" doc="Roll angle in radians"/>
+  <arg name="parent_frame" default="base_footprint" doc="Parent frame ID"/>
+  <arg name="child_frame" default="base_scan" doc="Child frame ID"/>
+  <arg name="period" default="100" doc="Publication period in ms"/>
+
+  <!-- Публикация статического TF преобразования -->
+  <node pkg="tf" type="static_transform_publisher" name="$(arg parent_frame)_to_$(arg child_frame)"
+        args="$(arg x) $(arg y) $(arg z) $(arg yaw) $(arg pitch) $(arg roll) $(arg parent_frame) $(arg child_frame) $(arg period)" />
+</launch>
