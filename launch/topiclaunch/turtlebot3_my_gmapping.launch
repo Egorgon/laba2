@@ -1,0 +1,4 @@
+<launch>
+    <rosparam command="load" file="$(find study_pkg)/config/gmapping_params.yaml" />
+    <node pkg="gmapping" type="slam_gmapping" name="gmapping" />
+</launch>
